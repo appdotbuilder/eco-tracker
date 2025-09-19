@@ -1,12 +1,26 @@
+import { db } from '../db';
+import { challengesTable } from '../db/schema';
 import { type Challenge } from '../schema';
+import { eq, desc } from 'drizzle-orm';
 
-export async function getUserChallenges(userId: number): Promise<Challenge[]> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is:
-    // 1. Fetch all challenges for a specific user
-    // 2. Include both active and completed challenges
-    // 3. Order by created date (most recent first)
-    // 4. Include progress information (completed_days vs target_days)
-    // 5. Used for displaying user's challenge progress in UI
-    return Promise.resolve([]);
-}
+export const getUserChallenges = async (userId: number): Promise<Challenge[]> => {
+  try {
+    // Query challenges for the specific user, ordered by most recent first
+    const results = await db.select()
+      .from(challengesTable)
+      .where(eq(challengesTable.user_id, userId))
+      .orderBy(desc(challengesTable.created_at))
+      .execute();
+
+    // Convert date fields and return properly typed challenges
+    return results.map(challenge => ({
+      ...challenge,
+      start_date: new Date(challenge.start_date),
+      end_date: challenge.end_date ? new Date(challenge.end_date) : null,
+      created_at: new Date(challenge.created_at)
+    }));
+  } catch (error) {
+    console.error('Failed to get user challenges:', error);
+    throw error;
+  }
+};
